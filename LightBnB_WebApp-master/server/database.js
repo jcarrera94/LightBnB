@@ -25,17 +25,6 @@ const getUserWithEmail = function(email) {
   return pool.query(queryString, values)
   .then(res => res.rows[0])
   .catch(err => console.error('query error: ', err.stack));
-
-  // let user;
-  // for (const userId in users) {
-  //   user = users[userId];
-  //   if (user.email.toLowerCase() === email.toLowerCase()) {
-  //     break;
-  //   } else {
-  //     user = null;
-  //   }
-  // }
-  // return Promise.resolve(user);
 }
 exports.getUserWithEmail = getUserWithEmail;
 
@@ -53,7 +42,6 @@ const getUserWithId = function(id) {
   return pool.query(queryString, values)
   .then(res => res.rows[0])
   .catch(err => console.error('query error: ', err.stack));
-  // return Promise.resolve(users[id]);
 }
 exports.getUserWithId = getUserWithId;
 
@@ -74,12 +62,6 @@ const addUser =  function(user) {
   return pool.query(queryString, values)
   .then(res => res.rows[0])
   .catch(err => console.error('query error: ', err.stack));
-
-
-  // const userId = Object.keys(users).length + 1;
-  // user.id = userId;
-  // users[userId] = user;
-  // return Promise.resolve(user);
 }
 exports.addUser = addUser;
 
@@ -91,7 +73,20 @@ exports.addUser = addUser;
  * @return {Promise<[{}]>} A promise to the reservations.
  */
 const getAllReservations = function(guest_id, limit = 10) {
-  return getAllProperties(null, 2);
+  const queryString = `
+  SELECT properties.*, reservations.start_date as start_date, avg(property_reviews.rating) as average_rating
+  FROM reservations
+  JOIN properties ON properties.id = reservations.property_id
+  JOIN property_reviews ON property_reviews.property_id = properties.id
+  WHERE reservations.guest_id = $1
+  GROUP BY properties.id, properties.title, properties.cost_per_night, reservations.start_date, reservations.end_date
+  HAVING reservations.end_date < now()::date
+  ORDER BY reservations.start_date
+  LIMIT $2;`
+  const values = [`${guest_id}`, `${limit}`];
+  return pool.query(queryString, values)
+  .then(res => res.rows)
+  .catch(err => console.error('query error: ', err.stack));
 }
 exports.getAllReservations = getAllReservations;
 
@@ -117,12 +112,6 @@ const getAllProperties = function(options, limit = 10) {
   return pool.query(queryString, values)
   .then(res => res.rows)
   .catch(err => console.error('query error: ', err.stack));
-
-  // const limitedProperties = {};
-  // for (let i = 1; i <= limit; i++) {
-  //   limitedProperties[i] = properties[i];
-  // }
-  // return Promise.resolve(limitedProperties);
 }
 exports.getAllProperties = getAllProperties;
 
